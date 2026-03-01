@@ -107,8 +107,9 @@ char *oid_to_hex_r(char *buffer, const struct object_id *oid)
 
 char *hash_to_hex_algop(const unsigned char *hash, const struct git_hash_algo *algop)
 {
-	static int bufno;
-	static char hexbuffer[4][GIT_MAX_HEXSZ + 1];
+	static _Thread_local int bufno;
+	static _Thread_local char hexbuffer[4][GIT_MAX_HEXSZ + 1];
+
 	bufno = (bufno + 1) % ARRAY_SIZE(hexbuffer);
 	return hash_to_hex_algop_r(hexbuffer[bufno], hash, algop);
 }
