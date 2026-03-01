@@ -71,8 +71,12 @@ int parse_oid_hex_algop(const char *hex, struct object_id *oid,
 int parse_oid_hex_any(const char *hex, struct object_id *oid, const char **end)
 {
 	int ret = get_oid_hex_any(hex, oid);
-	if (ret)
+	if (ret) {
 		*end = hex + hash_algos[ret].hexsz;
+	} else {
+		if (end)
+			*end = hex;
+	}
 	return ret;
 }
 
