@@ -1547,6 +1547,10 @@ int cmd_main(int argc, const char **argv)
 	int ret = 1;
 
 	setup_git_directory_gently(&nongit);
+
+	if (nongit && !the_repository->hash_algo)
+		repo_set_hash_algo(the_repository, GIT_HASH_SHA1);
+
 	if (argc < 2) {
 		error(_("remote-curl: usage: git remote-curl <remote> [<url>]"));
 		goto cleanup;

@@ -782,4 +782,19 @@ test_expect_success 'tag following always works over v0 http' '
 	test_cmp expect actual
 '
 
+test_expect_success 'ls-remote outside repo does not segfault with fetch refspec' '
+	GIT_CEILING_DIRECTORIES=$(pwd) &&
+	export GIT_CEILING_DIRECTORIES &&
+	mkdir nongit &&
+	(
+		cd nongit &&
+		env GIT_CONFIG_NOSYSTEM=1 \
+			GIT_CONFIG_GLOBAL=/dev/null \
+			GIT_CONFIG_COUNT=1 \
+			GIT_CONFIG_KEY_0=remote.origin.fetch \
+			GIT_CONFIG_VALUE_0="+refs/tags/*:refs/tags/*" \
+			git ls-remote "$HTTPD_URL/smart/repo.git"
+	)
+'
+
 test_done
