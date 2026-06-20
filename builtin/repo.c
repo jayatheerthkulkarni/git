@@ -90,24 +90,27 @@ static const struct repo_info_field repo_info_field[] = {
 	{ "references.format", get_references_format },
 };
 
-static int repo_info_field_cmp(const void *va, const void *vb)
+static int is_valid_prefix_match(const char *key, const char *prefix)
 {
-	const struct repo_info_field *a = va;
-	const struct repo_info_field *b = vb;
+	size_t prefix_len = strlen(prefix);
 
-	return strcmp(a->key, b->key);
+	if (!prefix_len)
+		return 0;
+
+	if (strncmp(key, prefix, prefix_len))
+		return 0;
+
+	return key[prefix_len] == '\0' || prefix[prefix_len - 1] == '.' || key[prefix_len] == '.';
 }
 
-static const struct repo_info_field *get_repo_info_field(const char *key)
+static size_t find_first_repo_info_field_match(const char *prefix)
 {
-	const struct repo_info_field search_key = { key, NULL };
-	const struct repo_info_field *found = bsearch(&search_key,
-						      repo_info_field,
-						      ARRAY_SIZE(repo_info_field),
-						      sizeof(*found),
-						      repo_info_field_cmp);
-
-	return found;
+	for (size_t i = 0; i < ARRAY_SIZE(repo_info_field); i++) {
+		if (is_valid_prefix_match(repo_info_field[i].key, prefix)) {
+			return i;
+		}
+	}
+	return SIZE_MAX;
 }
 
 static void print_field(enum output_format format, const char *key,
@@ -135,17 +138,28 @@ static int print_fields(int argc, const char **argv,
 	struct strbuf valbuf = STRBUF_INIT;
 
 	for (int i = 0; i < argc; i++) {
-		const char *key = argv[i];
-		const struct repo_info_field *field = get_repo_info_field(key);
+		const char *prefix = argv[i];
+		size_t prefix_len = strlen(prefix);
+		size_t idx = find_first_repo_info_field_match(prefix);
+		int found = 0;
 
-		if (!field) {
-			ret = error(_("key '%s' not found"), key);
-			continue;
+		for (; idx < ARRAY_SIZE(repo_info_field); idx++) {
+			const struct repo_info_field *field = &repo_info_field[idx];
+
+			if (strncmp(field->key, prefix, prefix_len))
+				break;
+
+			if (is_valid_prefix_match(field->key, prefix)) {
+				strbuf_reset(&valbuf);
+				field->get_value(repo, &valbuf);
+				print_field(format, field->key, valbuf.buf);
+				found = 1;
+			}
 		}
 
-		strbuf_reset(&valbuf);
-		field->get_value(repo, &valbuf);
-		print_field(format, key, valbuf.buf);
+		if (!found) {
+			ret = error(_("key '%s' not found"), prefix);
+		}
 	}
 
 	strbuf_release(&valbuf);

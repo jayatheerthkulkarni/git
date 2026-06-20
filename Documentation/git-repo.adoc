@@ -25,6 +25,12 @@ COMMANDS
 	the requested data will be returned based on their keys (see "INFO KEYS"
 	section below).
 +
+If a `<key>` argument matches a category prefix (i.e. a namespace that ends at
+a `.` boundary), all keys within that namespace are returned. For example,
+`layout` returns both `layout.bare` and `layout.shallow`. The prefix must
+align with a namespace boundary; partial prefixes that do not end at a `.`
+separator (e.g. `lay`) are treated as unknown keys and will produce an error.
++
 The values are returned in the same order in which their respective keys were
 requested. The `--all` flag requests the values for all the available keys.
 +
@@ -124,6 +130,12 @@ using the `nul` format:
 +
 ------------
 git repo info --format=nul layout.bare layout.shallow
+------------
+
+* Retrieves all keys under the `layout` category prefix:
++
+------------
+git repo info layout
 ------------
 
 SEE ALSO

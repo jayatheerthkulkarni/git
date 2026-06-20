@@ -149,6 +149,22 @@ test_expect_success 'git repo info --keys uses lines as its default output forma
 	test_cmp expect actual
 '
 
+test_expect_success 'git repo info with category prefix returns all keys in namespace' '
+	cat >expect <<-\EOF &&
+	layout.bare=false
+	layout.shallow=false
+	EOF
+	git init prefix-repo &&
+	git -C prefix-repo repo info layout >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success 'git repo info with invalid partial boundary fails' '
+	echo "error: key ${SQ}lay${SQ} not found" >expect &&
+	test_must_fail git -C prefix-repo repo info lay 2>actual &&
+	test_cmp expect actual
+'
+
 test_expect_success 'git repo info -h shows only repo info usage' '
 	test_must_fail git repo info -h >actual &&
 	test_grep "git repo info" actual &&
