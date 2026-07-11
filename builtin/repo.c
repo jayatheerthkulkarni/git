@@ -1,3 +1,4 @@
+#include "compat/posix.h"
 #define USE_THE_REPOSITORY_VARIABLE
 
 #include "builtin.h"
@@ -97,6 +98,16 @@ static int get_path_commondir_relative(struct repository *repo, struct strbuf *b
 		return error(_("unable to get common directory"));
 
 	format_path(buf, common_dir, startup_info->prefix, PATH_FORMAT_RELATIVE);
+	return 0;
+}
+
+static int get_path_git_prefix(struct repository *repo UNUSED, struct strbuf *buf)
+{
+	/*
+	 * startup_info->prefix is NULL if we are at the working tree root.
+	 * We add an empty string to ensure the buffer is cleanly initialized.
+	 */
+	strbuf_addstr(buf, startup_info->prefix ? startup_info->prefix : "");
 	return 0;
 }
 
@@ -278,6 +289,7 @@ static const struct repo_info_field repo_info_field[] = {
 	{ "object.format", get_object_format },
 	{ "path.commondir.absolute", get_path_commondir_absolute },
 	{ "path.commondir.relative", get_path_commondir_relative },
+	{ "path.git-prefix", get_path_git_prefix },
 	{ "path.gitdir.absolute", get_path_gitdir_absolute },
 	{ "path.gitdir.relative", get_path_gitdir_relative },
 	{ "path.grafts.absolute", get_path_grafts_absolute },
