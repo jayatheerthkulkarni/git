@@ -4,6 +4,13 @@ test_description='test git repo structure'
 
 . ./test-lib.sh
 
+# Detect if there's any UTF-8 locale on the test system.
+UTF8_LOCALE_VAR=$(locale -a 2>/dev/null | sed -n '/\.[uU][tT][fF]-*8$/{p;q;}')
+if test -n "$UTF8_LOCALE_VAR"
+then
+	test_set_prereq UTF8_LOCALE
+fi
+
 object_type_disk_usage() {
 	disk_usage_opt="--disk-usage"
 
@@ -228,6 +235,58 @@ test_expect_success 'git repo structure -h shows only repo structure usage' '
 	test_must_fail git repo structure -h >actual &&
 	test_grep "git repo structure" actual &&
 	test_grep ! "git repo info" actual
+'
+
+test_expect_success UTF8_LOCALE 'unicode output under UTF-8 locale' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		cat >expect <<-\EOF &&
+		│ Repository structure      │ Value  │
+		├───────────────────────────┼────────┤
+		│ • References              │        │
+		│   • Count                 │    0   │
+		│     • Branches            │    0   │
+		│     • Tags                │    0   │
+		│     • Remotes             │    0   │
+		│     • Others              │    0   │
+		│                           │        │
+		│ • Reachable objects       │        │
+		│   • Count                 │    0   │
+		│     • Commits             │    0   │
+		│     • Trees               │    0   │
+		│     • Blobs               │    0   │
+		│     • Tags                │    0   │
+		│   • Inflated size         │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│   • Disk size             │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│                           │        │
+		│ • Largest objects         │        │
+		│   • Commits               │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum parents     │    0   │
+		│   • Trees                 │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum entries     │    0   │
+		│   • Blobs                 │        │
+		│     • Maximum size        │    0 B │
+		│   • Tags                  │        │
+		│     • Maximum size        │    0 B │
+		EOF
+
+		LC_ALL="$UTF8_LOCALE_VAR" git repo structure >out 2>err &&
+
+		test_cmp expect out &&
+		test_line_count = 0 err
+	)
 '
 
 test_done

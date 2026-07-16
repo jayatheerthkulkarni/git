@@ -665,82 +665,85 @@ static void stats_table_setup_structure(struct stats_table *table,
 	size_t object_count_total;
 	size_t disk_object_total;
 	size_t ref_total;
+	const char *bullet_l0 = is_utf8_locale() ? "•" : "*";
+	const char *bullet_l1 = is_utf8_locale() ? "  •" : "  *";
+	const char *bullet_l2 = is_utf8_locale() ? "    •" : "    *";
 
 	ref_total = get_total_reference_count(refs);
-	stats_table_addf(table, "* %s", _("References"));
-	stats_table_count_addf(table, ref_total, "  * %s", _("Count"));
-	stats_table_count_addf(table, refs->branches, "    * %s", _("Branches"));
-	stats_table_count_addf(table, refs->tags, "    * %s", _("Tags"));
-	stats_table_count_addf(table, refs->remotes, "    * %s", _("Remotes"));
-	stats_table_count_addf(table, refs->others, "    * %s", _("Others"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("References"));
+	stats_table_count_addf(table, ref_total, "%s %s", bullet_l1, _("Count"));
+	stats_table_count_addf(table, refs->branches, "%s %s", bullet_l2, _("Branches"));
+	stats_table_count_addf(table, refs->tags, "%s %s", bullet_l2, _("Tags"));
+	stats_table_count_addf(table, refs->remotes, "%s %s", bullet_l2, _("Remotes"));
+	stats_table_count_addf(table, refs->others, "%s %s", bullet_l2, _("Others"));
 
 	object_count_total = get_total_object_values(&objects->type_counts);
 	stats_table_addf(table, "");
-	stats_table_addf(table, "* %s", _("Reachable objects"));
-	stats_table_count_addf(table, object_count_total, "  * %s", _("Count"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("Reachable objects"));
+	stats_table_count_addf(table, object_count_total, "%s %s", bullet_l1, _("Count"));
 	stats_table_count_addf(table, objects->type_counts.commits,
-			       "    * %s", _("Commits"));
+			       "%s %s", bullet_l2, _("Commits"));
 	stats_table_count_addf(table, objects->type_counts.trees,
-			       "    * %s", _("Trees"));
+			       "%s %s", bullet_l2, _("Trees"));
 	stats_table_count_addf(table, objects->type_counts.blobs,
-			       "    * %s", _("Blobs"));
+			       "%s %s", bullet_l2, _("Blobs"));
 	stats_table_count_addf(table, objects->type_counts.tags,
-			       "    * %s", _("Tags"));
+			       "%s %s", bullet_l2, _("Tags"));
 
 	inflated_object_total = get_total_object_values(&objects->inflated_sizes);
 	stats_table_size_addf(table, inflated_object_total,
-			      "  * %s", _("Inflated size"));
+			      "%s %s", bullet_l1, _("Inflated size"));
 	stats_table_size_addf(table, objects->inflated_sizes.commits,
-			      "    * %s", _("Commits"));
+			      "%s %s", bullet_l2, _("Commits"));
 	stats_table_size_addf(table, objects->inflated_sizes.trees,
-			      "    * %s", _("Trees"));
+			      "%s %s", bullet_l2, _("Trees"));
 	stats_table_size_addf(table, objects->inflated_sizes.blobs,
-			      "    * %s", _("Blobs"));
+			      "%s %s", bullet_l2, _("Blobs"));
 	stats_table_size_addf(table, objects->inflated_sizes.tags,
-			      "    * %s", _("Tags"));
+			      "%s %s", bullet_l2, _("Tags"));
 
 	disk_object_total = get_total_object_values(&objects->disk_sizes);
 	stats_table_size_addf(table, disk_object_total,
-			      "  * %s", _("Disk size"));
+			      "%s %s", bullet_l1, _("Disk size"));
 	stats_table_size_addf(table, objects->disk_sizes.commits,
-			      "    * %s", _("Commits"));
+			      "%s %s", bullet_l2, _("Commits"));
 	stats_table_size_addf(table, objects->disk_sizes.trees,
-			      "    * %s", _("Trees"));
+			      "%s %s", bullet_l2, _("Trees"));
 	stats_table_size_addf(table, objects->disk_sizes.blobs,
-			      "    * %s", _("Blobs"));
+			      "%s %s", bullet_l2, _("Blobs"));
 	stats_table_size_addf(table, objects->disk_sizes.tags,
-			      "    * %s", _("Tags"));
+			      "%s %s", bullet_l2, _("Tags"));
 
 	stats_table_addf(table, "");
-	stats_table_addf(table, "* %s", _("Largest objects"));
-	stats_table_addf(table, "  * %s", _("Commits"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("Largest objects"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Commits"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.commit_size.oid,
 				     objects->largest.commit_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 	stats_table_object_count_addf(table,
 				      &objects->largest.parent_count.oid,
 				      objects->largest.parent_count.value,
-				      "    * %s", _("Maximum parents"));
-	stats_table_addf(table, "  * %s", _("Trees"));
+				      "%s %s", bullet_l2, _("Maximum parents"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Trees"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.tree_size.oid,
 				     objects->largest.tree_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 	stats_table_object_count_addf(table,
 				      &objects->largest.tree_entries.oid,
 				      objects->largest.tree_entries.value,
-				      "    * %s", _("Maximum entries"));
-	stats_table_addf(table, "  * %s", _("Blobs"));
+				      "%s %s", bullet_l2, _("Maximum entries"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Blobs"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.blob_size.oid,
 				     objects->largest.blob_size.value,
-				     "    * %s", _("Maximum size"));
-	stats_table_addf(table, "  * %s", _("Tags"));
+				     "%s %s", bullet_l2, _("Maximum size"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Tags"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.tag_size.oid,
 				     objects->largest.tag_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 }
 
 #define INDEX_WIDTH 4
@@ -756,28 +759,41 @@ static void stats_table_print_structure(const struct stats_table *table)
 	int unit_col_width = table->unit_col_width;
 	struct string_list_item *item;
 	struct strbuf buf = STRBUF_INIT;
+	const char *border_left = is_utf8_locale() ? "│ " : "| ";
+	const char *border_mid = is_utf8_locale() ? " │ " : " | ";
+	const char *border_right = is_utf8_locale() ? " │" : " |";
 
 	if (title_name_width > name_col_width)
 		name_col_width = title_name_width;
 	if (title_value_width > value_col_width + unit_col_width + 1)
 		value_col_width = title_value_width - unit_col_width;
 
-	strbuf_addstr(&buf, "| ");
+	strbuf_addstr(&buf, border_left);
 	strbuf_utf8_align(&buf, ALIGN_LEFT, name_col_width + INDEX_WIDTH,
 			  name_col_title);
-	strbuf_addstr(&buf, " | ");
+	strbuf_addstr(&buf, border_mid);
 	strbuf_utf8_align(&buf, ALIGN_LEFT,
 			  value_col_width + unit_col_width + 1, value_col_title);
-	strbuf_addstr(&buf, " |");
+	strbuf_addstr(&buf, border_right);
 	printf("%s\n", buf.buf);
 
-	printf("| ");
-	for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
-		putchar('-');
-	printf(" | ");
-	for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
-		putchar('-');
-	printf(" |\n");
+	if (is_utf8_locale()) {
+		printf("├─");
+		for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
+			printf("─");
+		printf("─┼─");
+		for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
+			printf("─");
+		printf("─┤\n");
+	} else {
+		printf("| ");
+		for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
+			putchar('-');
+		printf(" | ");
+		for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
+			putchar('-');
+		printf(" |\n");
+	}
 
 	for_each_string_list_item(item, &table->rows) {
 		struct stats_table_entry *entry = item->util;
@@ -791,7 +807,7 @@ static void stats_table_print_structure(const struct stats_table *table)
 		}
 
 		strbuf_reset(&buf);
-		strbuf_addstr(&buf, "| ");
+		strbuf_addstr(&buf, border_left);
 		strbuf_utf8_align(&buf, ALIGN_LEFT, name_col_width, item->string);
 
 		if (entry && entry->oid)
@@ -800,11 +816,11 @@ static void stats_table_print_structure(const struct stats_table *table)
 		else
 			strbuf_addchars(&buf, ' ', INDEX_WIDTH);
 
-		strbuf_addstr(&buf, " | ");
+		strbuf_addstr(&buf, border_mid);
 		strbuf_utf8_align(&buf, ALIGN_RIGHT, value_col_width, value);
 		strbuf_addch(&buf, ' ');
 		strbuf_utf8_align(&buf, ALIGN_LEFT, unit_col_width, unit);
-		strbuf_addstr(&buf, " |");
+		strbuf_addstr(&buf, border_right);
 		printf("%s\n", buf.buf);
 	}
 
