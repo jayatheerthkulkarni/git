@@ -2,6 +2,7 @@
 
 #include "builtin.h"
 #include "commit.h"
+#include "config.h"
 #include "environment.h"
 #include "hash.h"
 #include "hex.h"
@@ -27,7 +28,7 @@
 	"git repo info --keys [--format=(lines|nul) | -z]"
 
 #define REPO_STRUCTURE_USAGE \
-	"git repo structure [--format=(table|lines|nul) | -z]"
+	"git repo structure [--format=(table|lines|nul) | -z] [--[no-]unicode]"
 
 static const char *const repo_usage[] = {
 	REPO_INFO_USAGE,
@@ -348,6 +349,7 @@ struct stats_table {
 	int name_col_width;
 	int value_col_width;
 	int unit_col_width;
+	int use_unicode;
 };
 
 /*
@@ -498,82 +500,86 @@ static void stats_table_setup_structure(struct stats_table *table,
 	size_t object_count_total;
 	size_t disk_object_total;
 	size_t ref_total;
+	const int utf8 = table->use_unicode;
+	const char *bullet_l0 = utf8 ? "•" : "*";
+	const char *bullet_l1 = utf8 ? "  •" : "  *";
+	const char *bullet_l2 = utf8 ? "    •" : "    *";
 
 	ref_total = get_total_reference_count(refs);
-	stats_table_addf(table, "* %s", _("References"));
-	stats_table_count_addf(table, ref_total, "  * %s", _("Count"));
-	stats_table_count_addf(table, refs->branches, "    * %s", _("Branches"));
-	stats_table_count_addf(table, refs->tags, "    * %s", _("Tags"));
-	stats_table_count_addf(table, refs->remotes, "    * %s", _("Remotes"));
-	stats_table_count_addf(table, refs->others, "    * %s", _("Others"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("References"));
+	stats_table_count_addf(table, ref_total, "%s %s", bullet_l1, _("Count"));
+	stats_table_count_addf(table, refs->branches, "%s %s", bullet_l2, _("Branches"));
+	stats_table_count_addf(table, refs->tags, "%s %s", bullet_l2, _("Tags"));
+	stats_table_count_addf(table, refs->remotes, "%s %s", bullet_l2, _("Remotes"));
+	stats_table_count_addf(table, refs->others, "%s %s", bullet_l2, _("Others"));
 
 	object_count_total = get_total_object_values(&objects->type_counts);
 	stats_table_addf(table, "");
-	stats_table_addf(table, "* %s", _("Reachable objects"));
-	stats_table_count_addf(table, object_count_total, "  * %s", _("Count"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("Reachable objects"));
+	stats_table_count_addf(table, object_count_total, "%s %s", bullet_l1, _("Count"));
 	stats_table_count_addf(table, objects->type_counts.commits,
-			       "    * %s", _("Commits"));
+			       "%s %s", bullet_l2, _("Commits"));
 	stats_table_count_addf(table, objects->type_counts.trees,
-			       "    * %s", _("Trees"));
+			       "%s %s", bullet_l2, _("Trees"));
 	stats_table_count_addf(table, objects->type_counts.blobs,
-			       "    * %s", _("Blobs"));
+			       "%s %s", bullet_l2, _("Blobs"));
 	stats_table_count_addf(table, objects->type_counts.tags,
-			       "    * %s", _("Tags"));
+			       "%s %s", bullet_l2, _("Tags"));
 
 	inflated_object_total = get_total_object_values(&objects->inflated_sizes);
 	stats_table_size_addf(table, inflated_object_total,
-			      "  * %s", _("Inflated size"));
+			      "%s %s", bullet_l1, _("Inflated size"));
 	stats_table_size_addf(table, objects->inflated_sizes.commits,
-			      "    * %s", _("Commits"));
+			      "%s %s", bullet_l2, _("Commits"));
 	stats_table_size_addf(table, objects->inflated_sizes.trees,
-			      "    * %s", _("Trees"));
+			      "%s %s", bullet_l2, _("Trees"));
 	stats_table_size_addf(table, objects->inflated_sizes.blobs,
-			      "    * %s", _("Blobs"));
+			      "%s %s", bullet_l2, _("Blobs"));
 	stats_table_size_addf(table, objects->inflated_sizes.tags,
-			      "    * %s", _("Tags"));
+			      "%s %s", bullet_l2, _("Tags"));
 
 	disk_object_total = get_total_object_values(&objects->disk_sizes);
 	stats_table_size_addf(table, disk_object_total,
-			      "  * %s", _("Disk size"));
+			      "%s %s", bullet_l1, _("Disk size"));
 	stats_table_size_addf(table, objects->disk_sizes.commits,
-			      "    * %s", _("Commits"));
+			      "%s %s", bullet_l2, _("Commits"));
 	stats_table_size_addf(table, objects->disk_sizes.trees,
-			      "    * %s", _("Trees"));
+			      "%s %s", bullet_l2, _("Trees"));
 	stats_table_size_addf(table, objects->disk_sizes.blobs,
-			      "    * %s", _("Blobs"));
+			      "%s %s", bullet_l2, _("Blobs"));
 	stats_table_size_addf(table, objects->disk_sizes.tags,
-			      "    * %s", _("Tags"));
+			      "%s %s", bullet_l2, _("Tags"));
 
 	stats_table_addf(table, "");
-	stats_table_addf(table, "* %s", _("Largest objects"));
-	stats_table_addf(table, "  * %s", _("Commits"));
+	stats_table_addf(table, "%s %s", bullet_l0, _("Largest objects"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Commits"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.commit_size.oid,
 				     objects->largest.commit_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 	stats_table_object_count_addf(table,
 				      &objects->largest.parent_count.oid,
 				      objects->largest.parent_count.value,
-				      "    * %s", _("Maximum parents"));
-	stats_table_addf(table, "  * %s", _("Trees"));
+				      "%s %s", bullet_l2, _("Maximum parents"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Trees"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.tree_size.oid,
 				     objects->largest.tree_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 	stats_table_object_count_addf(table,
 				      &objects->largest.tree_entries.oid,
 				      objects->largest.tree_entries.value,
-				      "    * %s", _("Maximum entries"));
-	stats_table_addf(table, "  * %s", _("Blobs"));
+				      "%s %s", bullet_l2, _("Maximum entries"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Blobs"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.blob_size.oid,
 				     objects->largest.blob_size.value,
-				     "    * %s", _("Maximum size"));
-	stats_table_addf(table, "  * %s", _("Tags"));
+				     "%s %s", bullet_l2, _("Maximum size"));
+	stats_table_addf(table, "%s %s", bullet_l1, _("Tags"));
 	stats_table_object_size_addf(table,
 				     &objects->largest.tag_size.oid,
 				     objects->largest.tag_size.value,
-				     "    * %s", _("Maximum size"));
+				     "%s %s", bullet_l2, _("Maximum size"));
 }
 
 #define INDEX_WIDTH 4
@@ -589,28 +595,42 @@ static void stats_table_print_structure(const struct stats_table *table)
 	int unit_col_width = table->unit_col_width;
 	struct string_list_item *item;
 	struct strbuf buf = STRBUF_INIT;
+	const int utf8 = table->use_unicode;
+	const char *border_left = utf8 ? "│ " : "| ";
+	const char *border_mid = utf8 ? " │ " : " | ";
+	const char *border_right = utf8 ? " │" : " |";
 
 	if (title_name_width > name_col_width)
 		name_col_width = title_name_width;
 	if (title_value_width > value_col_width + unit_col_width + 1)
 		value_col_width = title_value_width - unit_col_width;
 
-	strbuf_addstr(&buf, "| ");
+	strbuf_addstr(&buf, border_left);
 	strbuf_utf8_align(&buf, ALIGN_LEFT, name_col_width + INDEX_WIDTH,
 			  name_col_title);
-	strbuf_addstr(&buf, " | ");
+	strbuf_addstr(&buf, border_mid);
 	strbuf_utf8_align(&buf, ALIGN_LEFT,
 			  value_col_width + unit_col_width + 1, value_col_title);
-	strbuf_addstr(&buf, " |");
+	strbuf_addstr(&buf, border_right);
 	printf("%s\n", buf.buf);
 
-	printf("| ");
-	for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
-		putchar('-');
-	printf(" | ");
-	for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
-		putchar('-');
-	printf(" |\n");
+	if (utf8) {
+		printf("├─");
+		for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
+			printf("─");
+		printf("─┼─");
+		for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
+			printf("─");
+		printf("─┤\n");
+	} else {
+		printf("| ");
+		for (int i = 0; i < name_col_width + INDEX_WIDTH; i++)
+			putchar('-');
+		printf(" | ");
+		for (int i = 0; i < value_col_width + unit_col_width + 1; i++)
+			putchar('-');
+		printf(" |\n");
+	}
 
 	for_each_string_list_item(item, &table->rows) {
 		struct stats_table_entry *entry = item->util;
@@ -624,7 +644,7 @@ static void stats_table_print_structure(const struct stats_table *table)
 		}
 
 		strbuf_reset(&buf);
-		strbuf_addstr(&buf, "| ");
+		strbuf_addstr(&buf, border_left);
 		strbuf_utf8_align(&buf, ALIGN_LEFT, name_col_width, item->string);
 
 		if (entry && entry->oid)
@@ -633,11 +653,11 @@ static void stats_table_print_structure(const struct stats_table *table)
 		else
 			strbuf_addchars(&buf, ' ', INDEX_WIDTH);
 
-		strbuf_addstr(&buf, " | ");
+		strbuf_addstr(&buf, border_mid);
 		strbuf_utf8_align(&buf, ALIGN_RIGHT, value_col_width, value);
 		strbuf_addch(&buf, ' ');
 		strbuf_utf8_align(&buf, ALIGN_LEFT, unit_col_width, unit);
-		strbuf_addstr(&buf, " |");
+		strbuf_addstr(&buf, border_right);
 		printf("%s\n", buf.buf);
 	}
 
@@ -935,6 +955,8 @@ static int cmd_repo_structure(int argc, const char **argv, const char *prefix,
 	struct repo_structure stats = { 0 };
 	struct rev_info revs;
 	int show_progress = -1;
+	int use_unicode = -1;
+	int val;
 	struct option options[] = {
 		OPT_CALLBACK_F(0, "format", &format, N_("format"),
 			       N_("output format"),
@@ -944,12 +966,22 @@ static int cmd_repo_structure(int argc, const char **argv, const char *prefix,
 			       PARSE_OPT_NONEG | PARSE_OPT_NOARG,
 			       parse_format_cb),
 		OPT_BOOL(0, "progress", &show_progress, N_("show progress")),
+		OPT_BOOL(0, "unicode", &use_unicode,
+			 N_("use Unicode box-drawing characters")),
 		OPT_END()
 	};
 
 	argc = parse_options(argc, argv, prefix, options, repo_structure_usage, 0);
 	if (argc)
 		usage(_("too many arguments"));
+
+	if (use_unicode < 0) {
+		if (!repo_config_get_bool(repo, "repo.structure.unicode", &val))
+			use_unicode = val;
+		else
+			use_unicode = is_utf8_locale();
+	}
+	table.use_unicode = use_unicode;
 
 	repo_init_revisions(repo, &revs, prefix);
 
