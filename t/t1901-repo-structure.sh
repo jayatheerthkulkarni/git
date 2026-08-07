@@ -230,4 +230,62 @@ test_expect_success 'git repo structure -h shows only repo structure usage' '
 	test_grep ! "git repo info" actual
 '
 
+test_expect_success UTF8_LOCALE 'unicode output under UTF-8 locale with missing locale dir' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		cat >expect <<-\EOF &&
+		│ Repository structure      │ Value  │
+		├───────────────────────────┼────────┤
+		│ • References              │        │
+		│   • Count                 │    0   │
+		│     • Branches            │    0   │
+		│     • Tags                │    0   │
+		│     • Remotes             │    0   │
+		│     • Others              │    0   │
+		│                           │        │
+		│ • Reachable objects       │        │
+		│   • Count                 │    0   │
+		│     • Commits             │    0   │
+		│     • Trees               │    0   │
+		│     • Blobs               │    0   │
+		│     • Tags                │    0   │
+		│   • Inflated size         │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│   • Disk size             │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│                           │        │
+		│ • Largest objects         │        │
+		│   • Commits               │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum parents     │    0   │
+		│   • Trees                 │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum entries     │    0   │
+		│   • Blobs                 │        │
+		│     • Maximum size        │    0 B │
+		│   • Tags                  │        │
+		│     • Maximum size        │    0 B │
+		EOF
+		# Point GIT_TEXTDOMAINDIR at a nonexistent path so
+		# git_setup_gettext() takes its early-return path (its
+		# locale-directory check fails) and never populates the
+		# gettext-internal charset. This exercises the
+		# is_utf8_locale() fallback that derives the charset
+		# directly from LC_ALL/LC_CTYPE/LANG instead, regardless of
+		# whether gettext itself was able to initialize.
+		GIT_TEXTDOMAINDIR="$TRASH_DIRECTORY/nonexistent-locale-dir" \
+		LC_ALL="$UTF8_LOCALE_VAR" git repo structure >out 2>err &&
+		test_cmp expect out &&
+		test_line_count = 0 err
+	)
+'
+
 test_done
