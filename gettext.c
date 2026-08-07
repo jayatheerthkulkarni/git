@@ -141,7 +141,6 @@ int gettext_width(const char *s)
 
 int is_utf8_locale(void)
 {
-#ifdef NO_GETTEXT
 	if (!charset) {
 		const char *env = getenv("LC_ALL");
 		if (!env || !*env)
@@ -154,6 +153,5 @@ int is_utf8_locale(void)
 			env = strchr(env, '.') + 1;
 		charset = xstrdup(env);
 	}
-#endif
 	return is_encoding_utf8(charset);
 }
