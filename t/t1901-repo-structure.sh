@@ -4,6 +4,29 @@ test_description='test git repo structure'
 
 . ./test-lib.sh
 
+# Detect if a UTF-8 locale is available on the test system.
+if test -z "$GIT_TEST_UTF8_LOCALE"
+then
+	case "${LC_ALL:-$LANG}" in
+	*.[Uu][Tt][Ff]8 | *.[Uu][Tt][Ff]-8)
+		GIT_TEST_UTF8_LOCALE="${LC_ALL:-$LANG}"
+		;;
+	*)
+		if type locale >/dev/null 2>&1
+		then
+			GIT_TEST_UTF8_LOCALE=$(locale -a 2>/dev/null | sed -n '/\.[uU][tT][fF]-*8$/{
+				p
+				q
+			}')
+		fi
+		;;
+	esac
+fi
+if test -n "$GIT_TEST_UTF8_LOCALE"
+then
+	test_set_prereq UTF8_LOCALE
+fi
+
 object_type_disk_usage() {
 	disk_usage_opt="--disk-usage"
 
@@ -66,7 +89,10 @@ test_expect_success 'empty repository' '
 		|     * Maximum size        |    0 B |
 		EOF
 
-		git repo structure >out 2>err &&
+		# Force a non-UTF8 locale so this test always exercises the
+		# ASCII fallback formatting, regardless of what locale the
+		# runner defaults to.
+		LC_ALL=C git repo structure >out 2>err &&
 
 		test_cmp expect out &&
 		test_line_count = 0 err
@@ -137,7 +163,10 @@ test_expect_success SHA1 'repository with references and objects' '
 		[6] 4dae4f5954f5e6feb3577cfb1b181daa3fd3afd2
 		EOF
 
-		git repo structure >out 2>err &&
+		# Force a non-UTF8 locale so this test always exercises the
+		# ASCII fallback formatting, regardless of what locale the
+		# runner defaults to.
+		LC_ALL=C git repo structure >out 2>err &&
 
 		test_cmp expect out &&
 		test_line_count = 0 err
@@ -228,6 +257,162 @@ test_expect_success 'git repo structure -h shows only repo structure usage' '
 	git repo structure -h >actual &&
 	test_grep "git repo structure" actual &&
 	test_grep ! "git repo info" actual
+'
+
+test_expect_success UTF8_LOCALE 'unicode output under UTF-8 locale with missing locale dir' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		cat >expect <<-\EOF &&
+		│ Repository structure      │ Value  │
+		├───────────────────────────┼────────┤
+		│ • References              │        │
+		│   • Count                 │    0   │
+		│     • Branches            │    0   │
+		│     • Tags                │    0   │
+		│     • Remotes             │    0   │
+		│     • Others              │    0   │
+		│                           │        │
+		│ • Reachable objects       │        │
+		│   • Count                 │    0   │
+		│     • Commits             │    0   │
+		│     • Trees               │    0   │
+		│     • Blobs               │    0   │
+		│     • Tags                │    0   │
+		│   • Inflated size         │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│   • Disk size             │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│                           │        │
+		│ • Largest objects         │        │
+		│   • Commits               │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum parents     │    0   │
+		│   • Trees                 │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum entries     │    0   │
+		│   • Blobs                 │        │
+		│     • Maximum size        │    0 B │
+		│   • Tags                  │        │
+		│     • Maximum size        │    0 B │
+		EOF
+		# Point GIT_TEXTDOMAINDIR at a nonexistent path so
+		# git_setup_gettext() takes its early-return path (its
+		# locale-directory check fails) and never populates the
+		# gettext-internal charset. This exercises the
+		# is_utf8_locale() fallback that derives the charset
+		# directly from LC_ALL/LC_CTYPE/LANG instead, regardless of
+		# whether gettext itself was able to initialize.
+		GIT_TEXTDOMAINDIR="$TRASH_DIRECTORY/nonexistent-locale-dir" \
+		LC_ALL="$GIT_TEST_UTF8_LOCALE" git repo structure >out 2>err &&
+		test_cmp expect out &&
+		test_line_count = 0 err
+	)
+'
+
+test_expect_success UTF8_LOCALE 'unicode output under UTF-8 locale' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		cat >expect <<-\EOF &&
+		│ Repository structure      │ Value  │
+		├───────────────────────────┼────────┤
+		│ • References              │        │
+		│   • Count                 │    0   │
+		│     • Branches            │    0   │
+		│     • Tags                │    0   │
+		│     • Remotes             │    0   │
+		│     • Others              │    0   │
+		│                           │        │
+		│ • Reachable objects       │        │
+		│   • Count                 │    0   │
+		│     • Commits             │    0   │
+		│     • Trees               │    0   │
+		│     • Blobs               │    0   │
+		│     • Tags                │    0   │
+		│   • Inflated size         │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│   • Disk size             │    0 B │
+		│     • Commits             │    0 B │
+		│     • Trees               │    0 B │
+		│     • Blobs               │    0 B │
+		│     • Tags                │    0 B │
+		│                           │        │
+		│ • Largest objects         │        │
+		│   • Commits               │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum parents     │    0   │
+		│   • Trees                 │        │
+		│     • Maximum size        │    0 B │
+		│     • Maximum entries     │    0   │
+		│   • Blobs                 │        │
+		│     • Maximum size        │    0 B │
+		│   • Tags                  │        │
+		│     • Maximum size        │    0 B │
+		EOF
+		LC_ALL="$GIT_TEST_UTF8_LOCALE" git repo structure >out 2>err &&
+		test_cmp expect out &&
+		test_line_count = 0 err
+	)
+'
+
+test_expect_success UTF8_LOCALE 'repo.structure.unicode = false overrides UTF-8 locale' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		git config repo.structure.unicode false &&
+		LC_ALL="$GIT_TEST_UTF8_LOCALE" git repo structure >out 2>err &&
+		test_grep "* References" out &&
+		test_line_count = 0 err
+	)
+'
+
+test_expect_success 'repo.structure.unicode = true overrides ASCII locale' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		git config repo.structure.unicode true &&
+		LC_ALL=C git repo structure >out 2>err &&
+		test_grep "• References" out &&
+		test_line_count = 0 err
+	)
+'
+
+test_expect_success UTF8_LOCALE '--no-unicode flag overrides repo.structure.unicode = true' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		git config repo.structure.unicode true &&
+		LC_ALL="$GIT_TEST_UTF8_LOCALE" git repo structure --no-unicode >out 2>err &&
+		test_grep "* References" out &&
+		test_line_count = 0 err
+	)
+'
+
+test_expect_success 'CLI --unicode flag overrides repo.structure.unicode = false' '
+	test_when_finished "rm -rf repo" &&
+	git init repo &&
+	(
+		cd repo &&
+		git config repo.structure.unicode false &&
+		LC_ALL=C git repo structure --unicode >out 2>err &&
+		test_grep "• References" out &&
+		test_line_count = 0 err
+	)
 '
 
 test_done
